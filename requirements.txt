@@ -1,3 +1,5 @@
+--index-url https://download.pytorch.org/whl/cpu
+
 Flask
 transformers
 torch
