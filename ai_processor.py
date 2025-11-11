@@ -9,7 +9,9 @@ def get_classifier():
     """Carrega ou retorna o modelo de classificação já carregado."""
     if "classifier" not in MODELS:
         print("Carregando modelo de classificação pela primeira vez...")
-        MODELS["classifier"] = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
+        # Trocando para um modelo menor e mais eficiente para caber na memória dos planos gratuitos.
+        # Este modelo é uma ótima alternativa ao BART-Large.
+        MODELS["classifier"] = pipeline("zero-shot-classification", model="MoritzLaurer/mDeBERTa-v3-base-mnli-xnli")
         print("Modelo de classificação carregado.")
     return MODELS["classifier"]
 
