@@ -1,17 +1,20 @@
 # ai_processor.py
 from transformers import pipeline
 
-# Dicionário para armazenar os modelos após o primeiro carregamento (Lazy Loading)
-# Isso é crucial para o desempenho em ambientes serverless como a Vercel.
+# Dicionário para armazenar os modelos após o primeiro carregamento (Lazy Loading).
 MODELS = {}
 
 def get_classifier():
     """Carrega ou retorna o modelo de classificação já carregado."""
     if "classifier" not in MODELS:
         print("Carregando modelo de classificação pela primeira vez...")
-        # Trocando para um modelo menor e mais eficiente para caber na memória dos planos gratuitos.
-        # Este modelo é uma ótima alternativa ao BART-Large.
-        MODELS["classifier"] = pipeline("zero-shot-classification", model="MoritzLaurer/mDeBERTa-v3-base-mnli-xnli")
+        # Usando um modelo especialista em análise de sentimento e intenção,
+        # que é mais preciso para classificar emails do que um modelo genérico.
+        # Este modelo classifica o texto em 'positive', 'neutral', ou 'negative'.
+        # Vamos mapear 'neutral' e 'positive' para Produtivo, e 'negative' para Improdutivo.
+        MODELS["classifier"] = pipeline(
+            "sentiment-analysis", model="cardiffnlp/twitter-roberta-base-sentiment-latest"
+        )
         print("Modelo de classificação carregado.")
     return MODELS["classifier"]
 
@@ -38,20 +41,17 @@ def classify_email(text):
     if any(keyword in text_lower for keyword in spam_keywords):
         return "Improdutivo"
 
-    # 2. Se não for spam óbvio, usamos a IA para a classificação.
-    # Rótulos mais simples e diretos para melhorar a precisão da IA.
-    candidate_labels = [
-        "email de trabalho que requer uma ação",
-        "propaganda, spam ou uma mensagem pessoal"
-    ]
-    hypothesis_template = "O conteúdo deste email é sobre {}."
-
+    # 2. Se não for spam óbvio, usamos o modelo especialista em sentimento/intenção.
     classifier = get_classifier()
-    result = classifier(text, candidate_labels, hypothesis_template=hypothesis_template)
+    # Truncamos o texto para focar na parte principal do email, melhorando a precisão.
+    result = classifier(text[:512]) # O modelo tem um limite de 512 tokens.
 
-    # Mapeamos o resultado do rótulo descritivo de volta para a categoria simples.
-    top_label = result['labels'][0]
-    if "trabalho" in top_label:
+    # Mapeamos o resultado do modelo para nossas categorias.
+    # Emails de trabalho (dúvidas, pedidos) são geralmente 'neutral' ou 'positive'.
+    # Emails improdutivos (reclamações vagas, desabafos) tendem a ser 'negative'.
+    sentiment = result[0]['label']
+
+    if sentiment == 'neutral' or sentiment == 'positive':
         return "Produtivo"
     else:
         return "Improdutivo"
