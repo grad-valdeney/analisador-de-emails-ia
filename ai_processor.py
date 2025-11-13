@@ -1,22 +1,12 @@
 # ai_processor.py
 from transformers import pipeline
 
-# Dicionário para armazenar os modelos após o primeiro carregamento (Lazy Loading).
-MODELS = {}
+# Carregue os modelos uma única vez para otimizar o desempenho.
+# O modelo de classificação pode determinar a categoria sem treinamento prévio.
+print("Carregando modelo de classificação...")
+classifier = pipeline("zero-shot-classification", model="facebook/bart-large-mnli")
+print("Modelo de classificação carregado.")
 
-def get_classifier():
-    """Carrega ou retorna o modelo de classificação já carregado."""
-    if "classifier" not in MODELS:
-        print("Carregando modelo de classificação pela primeira vez...")
-        # Usando um modelo especialista em análise de sentimento e intenção,
-        # que é mais preciso para classificar emails do que um modelo genérico.
-        # Este modelo classifica o texto em 'positive', 'neutral', ou 'negative'.
-        # Vamos mapear 'neutral' e 'positive' para Produtivo, e 'negative' para Improdutivo.
-        MODELS["classifier"] = pipeline(
-            "sentiment-analysis", model="cardiffnlp/twitter-roberta-base-sentiment-latest"
-        )
-        print("Modelo de classificação carregado.")
-    return MODELS["classifier"]
 
 def classify_email(text):
     """
@@ -30,28 +20,18 @@ def classify_email(text):
     if not text or not text.strip():
         return "Indeterminado"
 
-    # 1. Abordagem Híbrida: Filtro rápido por palavras-chave para spam/propaganda.
-    # Isso resolve casos óbvios de forma rápida e precisa antes de usar a IA.
-    text_lower = text.lower()
-    spam_keywords = [
-        "desconto", "oferta", "promoção", "clique aqui", "imperdível",
-        "grátis", "oportunidade única", "compre agora", "vagas limitadas"
+    # Rótulos mais simples e diretos para melhorar a precisão da IA.
+    candidate_labels = [
+        "email de trabalho que precisa de uma resposta",
+        "email pessoal ou de felicitações"
     ]
+    hypothesis_template = "O conteúdo deste email é sobre {}."
 
-    if any(keyword in text_lower for keyword in spam_keywords):
-        return "Improdutivo"
+    result = classifier(text, candidate_labels, hypothesis_template=hypothesis_template)
 
-    # 2. Se não for spam óbvio, usamos o modelo especialista em sentimento/intenção.
-    classifier = get_classifier()
-    # Truncamos o texto para focar na parte principal do email, melhorando a precisão.
-    result = classifier(text[:512]) # O modelo tem um limite de 512 tokens.
-
-    # Mapeamos o resultado do modelo para nossas categorias.
-    # Emails de trabalho (dúvidas, pedidos) são geralmente 'neutral' ou 'positive'.
-    # Emails improdutivos (reclamações vagas, desabafos) tendem a ser 'negative'.
-    sentiment = result[0]['label']
-
-    if sentiment == 'neutral' or sentiment == 'positive':
+    # Mapeamos o resultado do rótulo descritivo de volta para a categoria simples.
+    top_label = result['labels'][0]
+    if "trabalho" in top_label:
         return "Produtivo"
     else:
         return "Improdutivo"

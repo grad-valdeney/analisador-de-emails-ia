@@ -77,4 +77,4 @@ def analyze():
 if __name__ == '__main__':
     # Para desenvolvimento local, use o servidor do Flask.
     # Para produção, use 'gunicorn app:app'.
-    app.run(host='0.0.0.0', port=int(os.environ.get('PORT', 7860)))
+    app.run(host='0.0.0.0', port=5000, debug=True)
