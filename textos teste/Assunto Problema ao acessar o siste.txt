@@ -1,0 +1,10 @@
+Assunto: Problema ao acessar o sistema
+
+Prezados,
+
+Estou tentando acessar o painel de relatórios desde hoje de manhã, mas estou recebendo uma mensagem de "erro 503". Já tentei limpar o cache do navegador e reiniciar o computador, mas o problema persiste.
+
+Poderiam verificar o que está acontecendo? Preciso extrair os dados de vendas para uma reunião urgente.
+
+Obrigado,
+João da Silva
